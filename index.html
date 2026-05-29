@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Web3 MKT Monitor Mockup</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand">
+        <span class="brand-mark">W3</span>
+        <div>
+          <strong>Web3 MKT</strong>
+          <span>Monitor</span>
+        </div>
+      </div>
+
+      <nav id="nav">
+        <button class="active" data-page="overview" type="button">Overview</button>
+        <button data-page="platforms" type="button">Platforms</button>
+        <button data-page="platformDetail" type="button">Platform Detail</button>
+        <button data-page="tokens" type="button">Tokens</button>
+        <button data-page="tokenDetail" type="button">Token Detail</button>
+        <button data-page="chains" type="button">Chains</button>
+        <button data-page="chainDetail" type="button">Chain Detail</button>
+        <button data-page="attribution" type="button">Attribution</button>
+        <button data-page="alerts" type="button">Alerts</button>
+        <button data-page="sources" type="button">Sources</button>
+        <button data-page="exports" type="button">Exports</button>
+        <button data-page="apiCost" type="button">API Cost</button>
+      </nav>
+
+      <div class="cost-meter">
+        <div class="cost-meter-head">
+          <span>API Budget</span>
+          <strong id="budgetScore">31%</strong>
+        </div>
+        <div class="meter"><span id="budgetBar" style="width: 31%"></span></div>
+        <p>Default pages use cached rollups. Expensive wallet and attribution calls are loaded only after user intent.</p>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" data-i18n="syncStatus">Cached market view · last sync 12 min ago</p>
+          <h1 id="pageTitle">All-chain market intelligence</h1>
+        </div>
+        <div class="top-actions">
+          <label class="search">
+            <span data-i18n="search">Search</span>
+            <input id="searchInput" type="search" placeholder="Token, chain, platform" data-i18n-placeholder="searchPlaceholder">
+          </label>
+          <select id="languageSelect" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh">简体中文</option>
+          </select>
+          <button id="refreshButton" class="button primary" type="button" data-i18n="refreshCached">Refresh cached</button>
+        </div>
+      </header>
+
+      <section class="toolbar" aria-label="Global filters">
+        <div class="segmented" role="group" aria-label="Time range">
+          <button class="active" data-range="24h" type="button">24h</button>
+          <button data-range="7d" type="button">7d</button>
+          <button data-range="30d" type="button">30d</button>
+          <button data-range="90d" type="button">90d</button>
+        </div>
+        <select id="chainFilter" aria-label="Chain filter">
+          <option value="all" data-i18n="allChains">All chains</option>
+          <option value="BNB Chain">BNB Chain</option>
+          <option value="Ethereum">Ethereum</option>
+          <option value="Solana">Solana</option>
+          <option value="Base">Base</option>
+        </select>
+        <select id="costMode" aria-label="Cost mode">
+          <option value="low" data-i18n="lowCostMode">Low-cost mode</option>
+          <option value="balanced" data-i18n="balancedMode">Balanced mode</option>
+          <option value="deep" data-i18n="deepMode">Deep research mode</option>
+        </select>
+        <button id="exportButton" class="button" type="button" data-i18n="exportCsv">Export CSV</button>
+      </section>
+
+      <section id="overview" class="page active">
+        <div class="metric-grid">
+          <article class="metric"><span>Volume</span><strong id="volumeMetric">$12.84B</strong><em>+8.6% vs previous</em></article>
+          <article class="metric"><span>Transactions</span><strong id="txMetric">18.7M</strong><em>+3.2% vs previous</em></article>
+          <article class="metric"><span>Active wallets</span><strong id="walletMetric">4.26M</strong><em>cached aggregate</em></article>
+          <article class="metric"><span>Unattributed</span><strong id="unknownMetric">14.2%</strong><em>needs labeling, not live API</em></article>
+        </div>
+
+        <div class="layout">
+          <article class="panel wide">
+            <div class="panel-head">
+              <div><p class="eyebrow">Market trend</p><h2>All-chain volume trend</h2></div>
+              <span class="pill green">Cached hourly</span>
+            </div>
+            <div class="trend-chart" aria-label="Volume trend chart">
+              <span style="height:40%"></span><span style="height:52%"></span><span style="height:45%"></span><span style="height:61%"></span>
+              <span style="height:56%"></span><span style="height:73%"></span><span style="height:68%"></span><span style="height:82%"></span>
+              <span style="height:76%"></span><span style="height:90%"></span><span style="height:84%"></span><span style="height:96%"></span>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Share</p><h2>Platform mix</h2></div>
+              <span class="pill">Intent-gated</span>
+            </div>
+            <div class="donut"><div><strong>85.8%</strong><span>attributed</span></div></div>
+            <ul class="legend" id="platformLegend"></ul>
+          </article>
+        </div>
+
+        <div class="layout">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Signals</p><h2>Top market moves</h2></div><span class="pill">15m scan</span></div>
+            <div id="overviewAlerts" class="signal-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Coverage</p><h2>Product feature coverage</h2></div></div>
+            <div class="coverage-grid" id="coverageGrid"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="platforms" class="page">
+        <article class="panel table-panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">Platform ranking</p><h2>Exchange and wallet onchain entries</h2></div>
+            <button class="button" data-open-page="platformDetail" type="button">Open selected platform</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Platform</th><th>Volume</th><th>Share</th><th>Tx</th><th>Active wallets</th><th>Confidence</th><th>API policy</th></tr></thead>
+              <tbody id="platformRows"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="platformDetail" class="page">
+        <div class="detail-hero">
+          <div>
+            <p class="eyebrow">Platform detail</p>
+            <h2>Binance Alpha</h2>
+            <span>BNB Chain dominant entry · high-confidence attribution</span>
+          </div>
+          <button id="loadPlatformDeep" class="button primary" type="button">Load wallet cohorts</button>
+        </div>
+        <div class="metric-grid">
+          <article class="metric"><span>Platform volume</span><strong>$3.92B</strong><em>30.5% market share</em></article>
+          <article class="metric"><span>Transactions</span><strong>4.8M</strong><em>cached rollup</em></article>
+          <article class="metric"><span>Active wallets</span><strong>890K</strong><em>sampled cohort</em></article>
+          <article class="metric"><span>Confidence</span><strong>94%</strong><em>router + label match</em></article>
+        </div>
+        <div class="layout">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Chains</p><h2>Chain distribution</h2></div></div><div id="platformChainSplit" class="stacked-bars"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Tokens</p><h2>Hot tokens on platform</h2></div></div><div id="platformTokenList" class="rank-list"></div></article>
+        </div>
+      </section>
+
+      <section id="tokens" class="page">
+        <article class="panel table-panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">Token ranking</p><h2>Hot assets across platform entries</h2></div>
+            <button class="button" data-open-page="tokenDetail" type="button">Open token detail</button>
+          </div>
+          <div id="tokenCards" class="card-grid"></div>
+        </article>
+      </section>
+
+      <section id="tokenDetail" class="page">
+        <div class="detail-hero">
+          <div><p class="eyebrow">Token detail</p><h2>BNB</h2><span>Cross-platform token performance and entry mix</span></div>
+          <button id="loadTokenDetail" class="button primary" type="button">Load wallet-level detail</button>
+        </div>
+        <div class="metric-grid">
+          <article class="metric"><span>Token volume</span><strong>$1.42B</strong><em>+12.4% 24h</em></article>
+          <article class="metric"><span>Liquidity</span><strong>$642M</strong><em>public market API</em></article>
+          <article class="metric"><span>Active wallets</span><strong>486K</strong><em>cached unique count</em></article>
+          <article class="metric"><span>Primary entry</span><strong>Alpha</strong><em>38% token share</em></article>
+        </div>
+        <div class="layout">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform split</p><h2>BNB entry distribution</h2></div></div><div id="tokenSplit" class="stacked-bars"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Pairs</p><h2>Popular trading pairs</h2></div></div><div id="pairList" class="rank-list"></div></article>
+        </div>
+      </section>
+
+      <section id="chains" class="page">
+        <div class="layout">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Chains</p><h2>Chain market share</h2></div><span class="pill green">Cached daily</span></div><div id="chainList" class="rank-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Cost</p><h2>Chain API strategy</h2></div></div><div id="chainCostList" class="cost-matrix"></div></article>
+        </div>
+      </section>
+
+      <section id="chainDetail" class="page">
+        <div class="detail-hero">
+          <div><p class="eyebrow">Chain detail</p><h2>BNB Chain</h2><span>Platform share, token heat, and attribution coverage</span></div>
+          <button class="button primary" data-open-page="platforms" type="button">Compare platforms</button>
+        </div>
+        <div class="metric-grid">
+          <article class="metric"><span>Chain volume</span><strong>$4.46B</strong><em>34.8% of market</em></article>
+          <article class="metric"><span>Transactions</span><strong>6.9M</strong><em>rollup table</em></article>
+          <article class="metric"><span>Attribution coverage</span><strong>91%</strong><em>label-backed</em></article>
+          <article class="metric"><span>Data cost</span><strong>Low</strong><em>daily index + hourly cache</em></article>
+        </div>
+        <article class="panel"><div class="panel-head"><div><p class="eyebrow">Platform share</p><h2>BNB Chain platform distribution</h2></div></div><div id="chainPlatformSplit" class="stacked-bars"></div></article>
+      </section>
+
+      <section id="attribution" class="page">
+        <article class="panel table-panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">Attribution</p><h2>Rules that map onchain activity to platform entry</h2></div>
+            <button id="testRuleButton" class="button" type="button">Test sample rule</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Rule type</th><th>Example</th><th>Platform</th><th>Confidence</th><th>Cost</th><th>Status</th></tr></thead>
+              <tbody id="ruleRows"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="alerts" class="page">
+        <div class="layout">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Alerts</p><h2>Market anomaly queue</h2></div><span class="pill">15m batch scan</span></div><div id="alertList" class="signal-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Rules</p><h2>Alert configuration</h2></div></div><div id="alertRules" class="source-list"></div></article>
+        </div>
+      </section>
+
+      <section id="sources" class="page">
+        <div class="layout">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Sources</p><h2>Data source health</h2></div></div><div id="sourceList" class="source-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">Freshness</p><h2>Refresh schedule</h2></div></div><div id="refreshList" class="cost-matrix"></div></article>
+        </div>
+      </section>
+
+      <section id="exports" class="page">
+        <article class="panel table-panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">Exports</p><h2>Queued CSV reports</h2></div>
+            <button id="queueExportButton" class="button primary" type="button">Queue new export</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Report</th><th>Scope</th><th>Rows</th><th>Source</th><th>Status</th></tr></thead>
+              <tbody id="exportRows"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="apiCost" class="page">
+        <div class="layout">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Cost control</p><h2>API spending strategy</h2></div></div>
+            <div class="cost-rules">
+              <div><strong>Free by default</strong><span>Use cached rollups for overview, ranking, and share charts.</span></div>
+              <div><strong>Pay on intent</strong><span>Only call wallet-level or attribution APIs after drilldown clicks.</span></div>
+              <div><strong>Batch expensive data</strong><span>Refresh historical trends on schedule instead of every page view.</span></div>
+            </div>
+          </article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">API plan</p><h2>Cost matrix</h2></div></div><div id="costMatrix" class="cost-matrix"></div></article>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
