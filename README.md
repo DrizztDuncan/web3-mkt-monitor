@@ -21,6 +21,12 @@ The mockup now separates live API data from mock/product-spec data:
 
 For the recommended backend path and budget assumptions, see `ROADMAP.md`.
 
+## Documentation Guide
+
+- Start with `README.md` for the product summary, current data sources, and demo deployment.
+- Read `ROADMAP.md` for backend phases, API ownership, and budget estimates.
+- Read `PRD.md` for the full product requirements, user stories, data model, and detailed planning.
+
 ## GitHub Pages
 
 This project can be hosted directly with GitHub Pages because it is a static site.
