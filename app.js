@@ -6,21 +6,50 @@ const platformData = [
   { name: "Unknown / Unattributed", chain: "Solana", volume: "$1.82B", share: 14.2, tx: "3.4M", wallets: "1.2M", confidence: "Low", policy: "No paid lookup", color: "#d2d8d5" },
 ];
 
-const tokenData = [
-  { symbol: "BNB", name: "BNB Chain", volume: "$1.42B", change: "+12.4%", liquidity: "$642M", platform: "Binance Alpha" },
-  { symbol: "ETH", name: "Ethereum", volume: "$1.21B", change: "+4.8%", liquidity: "$1.8B", platform: "OKX Wallet" },
-  { symbol: "SOL", name: "Solana", volume: "$940M", change: "+18.1%", liquidity: "$768M", platform: "Unknown" },
-  { symbol: "PEPE", name: "Meme", volume: "$386M", change: "+31.5%", liquidity: "$116M", platform: "OKX Wallet" },
-  { symbol: "WIF", name: "Meme", volume: "$214M", change: "-2.6%", liquidity: "$82M", platform: "Bitget Onchain" },
-  { symbol: "USDT", name: "Stablecoin", volume: "$1.08B", change: "+2.2%", liquidity: "$4.4B", platform: "BN Wallet" },
+const tokenMarketConfig = [
+  { id: "binancecoin", symbol: "BNB", fallbackName: "BNB Chain", platform: "Binance Alpha" },
+  { id: "ethereum", symbol: "ETH", fallbackName: "Ethereum", platform: "OKX Wallet" },
+  { id: "solana", symbol: "SOL", fallbackName: "Solana", platform: "Unknown" },
+  { id: "pepe", symbol: "PEPE", fallbackName: "Meme", platform: "OKX Wallet" },
+  { id: "dogwifcoin", symbol: "WIF", fallbackName: "Meme", platform: "Bitget Onchain" },
+  { id: "tether", symbol: "USDT", fallbackName: "Stablecoin", platform: "BN Wallet" },
 ];
 
-const chainData = [
+const chainMarketConfig = [
+  { llamaName: "BSC", displayName: "BNB Chain", policy: "DeFiLlama chain TVL" },
+  { llamaName: "Ethereum", displayName: "Ethereum", policy: "DeFiLlama chain TVL" },
+  { llamaName: "Solana", displayName: "Solana", policy: "DeFiLlama chain TVL" },
+  { llamaName: "Base", displayName: "Base", policy: "DeFiLlama chain TVL" },
+  { llamaName: "Arbitrum", displayName: "Arbitrum", policy: "DeFiLlama chain TVL" },
+];
+
+const poolMarketConfig = {
+  network: "bsc",
+  tokenAddress: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+};
+
+let tokenData = [
+  { id: "binancecoin", symbol: "BNB", name: "BNB Chain", volume: "$1.42B", change: "+12.4%", liquidity: "$642M", platform: "Binance Alpha" },
+  { id: "ethereum", symbol: "ETH", name: "Ethereum", volume: "$1.21B", change: "+4.8%", liquidity: "$1.8B", platform: "OKX Wallet" },
+  { id: "solana", symbol: "SOL", name: "Solana", volume: "$940M", change: "+18.1%", liquidity: "$768M", platform: "Unknown" },
+  { id: "pepe", symbol: "PEPE", name: "Meme", volume: "$386M", change: "+31.5%", liquidity: "$116M", platform: "OKX Wallet" },
+  { id: "dogwifcoin", symbol: "WIF", name: "Meme", volume: "$214M", change: "-2.6%", liquidity: "$82M", platform: "Bitget Onchain" },
+  { id: "tether", symbol: "USDT", name: "Stablecoin", volume: "$1.08B", change: "+2.2%", liquidity: "$4.4B", platform: "BN Wallet" },
+];
+
+let chainData = [
   { name: "BNB Chain", share: 34.8, volume: "$4.46B", tx: "6.9M", policy: "Archive + cached rollup" },
   { name: "Ethereum", share: 22.1, volume: "$2.84B", tx: "3.2M", policy: "Indexer batch" },
   { name: "Solana", share: 18.7, volume: "$2.40B", tx: "5.8M", policy: "Public API + sample" },
   { name: "Base", share: 12.6, volume: "$1.62B", tx: "1.9M", policy: "Subgraph cache" },
   { name: "Arbitrum", share: 8.4, volume: "$1.08B", tx: "910K", policy: "Daily rollup" },
+];
+
+let pairData = [
+  { name: "BNB/USDT", meta: "Cached pair rollup", value: "$486M" },
+  { name: "BNB/ETH", meta: "Cached pair rollup", value: "$214M" },
+  { name: "BNB/USDC", meta: "Cached pair rollup", value: "$168M" },
+  { name: "BNB/SOL", meta: "Cached pair rollup", value: "$92M" },
 ];
 
 const ruleData = [
@@ -39,9 +68,10 @@ const alertData = [
 ];
 
 const sourceData = [
-  { name: "Chain indexer", state: "Healthy", freshness: "8 min", confidence: 96 },
+  { name: "DeFiLlama TVL", state: "Delayed", freshness: "mock fallback", confidence: 82 },
   { name: "Platform labels", state: "Healthy", freshness: "1 hr", confidence: 91 },
   { name: "Market prices", state: "Delayed", freshness: "22 min", confidence: 84 },
+  { name: "GeckoTerminal Pools", state: "Delayed", freshness: "mock fallback", confidence: 80 },
   { name: "Community tags", state: "Review", freshness: "1 day", confidence: 68 },
 ];
 
@@ -323,6 +353,140 @@ function showToast(message) {
   window.setTimeout(() => toast.classList.remove("show"), 2600);
 }
 
+function formatUsdCompact(value) {
+  if (!Number.isFinite(value)) return "$0";
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: value >= 1000000000 ? 2 : 1,
+  }).format(value);
+}
+
+function formatPercent(value) {
+  if (!Number.isFinite(value)) return "0.0%";
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(1)}%`;
+}
+
+function updateSource(name, state, freshness, confidence) {
+  const source = sourceData.find((item) => item.name === name);
+  if (!source) return;
+  source.state = state;
+  source.freshness = freshness;
+  source.confidence = confidence;
+  renderSources();
+}
+
+async function fetchCryptoMarketData({ quiet = false } = {}) {
+  const ids = tokenMarketConfig.map((item) => item.id).join(",");
+  const endpoint = new URL("https://api.coingecko.com/api/v3/coins/markets");
+  endpoint.search = new URLSearchParams({
+    vs_currency: "usd",
+    ids,
+    order: "market_cap_desc",
+    per_page: tokenMarketConfig.length.toString(),
+    page: "1",
+    sparkline: "false",
+    price_change_percentage: "24h",
+  }).toString();
+
+  try {
+    updateSource("Market prices", "Loading", "now", 72);
+    const response = await fetch(endpoint);
+    if (!response.ok) throw new Error(`CoinGecko request failed: ${response.status}`);
+    const marketRows = await response.json();
+    const rowsById = new Map(marketRows.map((row) => [row.id, row]));
+
+    tokenData = tokenMarketConfig.map((token) => {
+      const row = rowsById.get(token.id);
+      const fallback = tokenData.find((item) => item.id === token.id) || {};
+      return {
+        id: token.id,
+        symbol: token.symbol,
+        name: token.fallbackName,
+        volume: row ? formatUsdCompact(row.total_volume) : fallback.volume,
+        change: row ? formatPercent(row.price_change_percentage_24h) : fallback.change,
+        liquidity: row ? formatUsdCompact(row.market_cap) : fallback.liquidity,
+        platform: token.platform,
+      };
+    });
+
+    renderTokens();
+    updateSource("Market prices", "Live", "just now", 94);
+    if (!quiet) showToast("Crypto market data refreshed from CoinGecko.");
+  } catch (error) {
+    console.warn(error);
+    updateSource("Market prices", "Delayed", "using mock fallback", 84);
+    if (!quiet) showToast("Crypto API unavailable. Showing cached mock data.");
+  }
+}
+
+async function fetchDefiLlamaChainData({ quiet = false } = {}) {
+  try {
+    updateSource("DeFiLlama TVL", "Loading", "now", 72);
+    const response = await fetch("https://api.llama.fi/v2/chains");
+    if (!response.ok) throw new Error(`DeFiLlama request failed: ${response.status}`);
+
+    const chains = await response.json();
+    const chainsByName = new Map(chains.map((item) => [item.name, item]));
+    const selectedChains = chainMarketConfig
+      .map((config) => ({ config, row: chainsByName.get(config.llamaName) }))
+      .filter((item) => item.row);
+    const selectedTvl = selectedChains.reduce((sum, item) => sum + Number(item.row.tvl || 0), 0);
+
+    chainData = selectedChains.map(({ config, row }) => ({
+      name: config.displayName,
+      share: selectedTvl ? Number(((Number(row.tvl || 0) / selectedTvl) * 100).toFixed(1)) : 0,
+      volume: `${formatUsdCompact(Number(row.tvl || 0))} TVL`,
+      tx: `${formatPercent(Number(row.change_1d || 0))} 24h`,
+      policy: config.policy,
+    }));
+
+    renderChains();
+    setDataState("#chains .panel", "live", "Live API");
+    updateSource("DeFiLlama TVL", "Live", "just now", 94);
+    if (!quiet) showToast("DeFiLlama chain TVL refreshed.");
+  } catch (error) {
+    console.warn(error);
+    updateSource("DeFiLlama TVL", "Delayed", "using mock fallback", 82);
+    setDataState("#chains .panel", "mock", "Mock data");
+    if (!quiet) showToast("DeFiLlama unavailable. Showing cached mock chain data.");
+  }
+}
+
+async function fetchGeckoTerminalPoolData({ quiet = false } = {}) {
+  try {
+    updateSource("GeckoTerminal Pools", "Loading", "now", 70);
+    const endpoint = `https://api.geckoterminal.com/api/v2/networks/${poolMarketConfig.network}/tokens/${poolMarketConfig.tokenAddress}/pools`;
+    const response = await fetch(endpoint);
+    if (!response.ok) throw new Error(`GeckoTerminal request failed: ${response.status}`);
+
+    const payload = await response.json();
+    pairData = (payload.data || []).slice(0, 4).map((pool) => {
+      const attrs = pool.attributes || {};
+      const volume = Number(attrs.volume_usd?.h24 || 0);
+      const reserve = Number(attrs.reserve_in_usd || 0);
+      const change = Number(attrs.price_change_percentage?.h24 || 0);
+      return {
+        name: attrs.name || "BNB pool",
+        meta: `${formatUsdCompact(volume)} 24h volume 繚 ${formatPercent(change)}`,
+        value: `${formatUsdCompact(reserve)} liquidity`,
+      };
+    });
+
+    renderPairs();
+    setDataState("#tokenDetail .layout .panel:last-child", "live", "Live API");
+    updateSource("GeckoTerminal Pools", "Live", "just now", 92);
+    if (!quiet) showToast("GeckoTerminal pool data refreshed.");
+  } catch (error) {
+    console.warn(error);
+    updateSource("GeckoTerminal Pools", "Delayed", "using mock fallback", 80);
+    setDataState("#tokenDetail .layout .panel:last-child", "mock", "Mock data");
+    if (!quiet) showToast("GeckoTerminal unavailable. Showing cached pair rollups.");
+  }
+}
+
 function renderPlatforms() {
   const term = $("#searchInput").value.trim().toLowerCase();
   const chain = $("#chainFilter").value;
@@ -333,7 +497,7 @@ function renderPlatforms() {
   });
 
   $("#platformRows").innerHTML = rows.map((item) => `
-    <tr>
+    <tr class="mock-row">
       <td><strong>${item.name}</strong><span>${item.chain}</span></td>
       <td>${item.volume}</td>
       <td>${item.share.toFixed(1)}%</td>
@@ -353,7 +517,7 @@ function renderLegend() {
 
 function renderTokens() {
   $("#tokenCards").innerHTML = tokenData.map((item, index) => `
-    <button class="data-card" data-open-page="tokenDetail" type="button">
+    <button class="data-card data-live" data-data-label="Live API" data-open-page="tokenDetail" type="button">
       <span>#${index + 1} · ${item.name}</span>
       <strong>${item.symbol}</strong>
       <em>${item.volume} · ${item.change}</em>
@@ -385,9 +549,15 @@ function renderChains() {
   `).join("");
 }
 
+function renderPairs() {
+  $("#pairList").innerHTML = pairData.map((pair, index) => `
+    <div class="rank-item"><span><strong>${index + 1}. ${pair.name}</strong>${pair.meta}</span><span>${pair.value}</span></div>
+  `).join("");
+}
+
 function renderRules() {
   $("#ruleRows").innerHTML = ruleData.map((item) => `
-    <tr>
+    <tr class="spec-row">
       <td><strong>${item.type}</strong></td>
       <td>${item.example}</td>
       <td>${item.platform}</td>
@@ -419,16 +589,17 @@ function renderAlerts() {
 
 function renderSources() {
   $("#sourceList").innerHTML = sourceData.map((item) => `
-    <div class="source-item">
+    <div class="source-item ${item.state === "Live" ? "data-live" : "data-mock"}">
       <div><strong>${item.name}</strong><span>${item.state} · ${item.freshness}</span></div>
       <div class="mini-meter"><i style="width:${item.confidence}%"></i></div>
     </div>
   `).join("");
 
   $("#refreshList").innerHTML = [
-    ["Overview rollups", "15 min"],
-    ["Platform shares", "15 min"],
-    ["Token prices", "10 min"],
+    ["Chain TVL", "DeFiLlama"],
+    ["Token prices", "CoinGecko"],
+    ["Pool liquidity", "GeckoTerminal"],
+    ["Platform shares", "Mock / labels"],
     ["Attribution labels", "Manual + daily"],
     ["Historical trends", "Daily"],
   ].map(([name, cadence]) => `<div><span>${name}</span><strong>${cadence}</strong></div>`).join("");
@@ -445,15 +616,41 @@ function renderExports() {
 
 function renderCoverageAndCost() {
   $("#coverageGrid").innerHTML = [
-    ["Overview", "Live-ready"], ["Platform share", "Live-ready"], ["Platform detail", "Intent gated"],
-    ["Token detail", "Intent gated"], ["Chain detail", "Cached"], ["Attribution", "Rule-backed"],
+    ["Overview", "DeFiLlama-ready"], ["Platform share", "Mock / labels"], ["Platform detail", "Intent gated"],
+    ["Token detail", "CoinGecko + GeckoTerminal"], ["Chain detail", "DeFiLlama"], ["Attribution", "Rule-backed"],
     ["Alerts", "Batch scan"], ["Exports", "Queued"],
   ].map(([name, state]) => `<div><strong>${name}</strong><span>${state}</span></div>`).join("");
 
   $("#costMatrix").innerHTML = [
-    ["Overview metrics", "Cache"], ["Platform ranking", "Cache"], ["Token market data", "Batch"],
-    ["Wallet cohorts", "On demand"], ["Raw tx replay", "Manual"], ["Exports", "Queued"],
+    ["Chain and protocol rollups", "DeFiLlama"], ["Token market data", "CoinGecko"], ["Pool and pair data", "GeckoTerminal"],
+    ["Platform ranking", "Mock / labels"], ["Wallet cohorts", "On demand"], ["Exports", "Queued"],
   ].map(([name, mode]) => `<div><span>${name}</span><strong>${mode}</strong></div>`).join("");
+}
+
+function setDataState(selector, state, label) {
+  $$(selector).forEach((node) => {
+    node.classList.remove("data-live", "data-mock", "data-spec", "data-mixed");
+    node.classList.add("data-state", `data-${state}`);
+    node.dataset.dataLabel = label;
+  });
+}
+
+function applyDataStateStyles() {
+  const mark = (selector, state, label) => {
+    setDataState(selector, state, label);
+  };
+
+  mark("#overview .metric, #overview .wide, #overview .layout:first-of-type .panel:not(.wide), #overview .layout:nth-of-type(2) .panel:first-child", "mock", "Mock data");
+  mark("#overview .layout:nth-of-type(2) .panel:last-child", "spec", "Feature spec");
+  mark("#platforms .panel", "mock", "Mock data");
+  mark("#platformDetail .detail-hero, #platformDetail .metric, #platformDetail .panel", "mock", "Mock data");
+  mark("#tokens .panel", "live", "Live API");
+  mark("#tokenDetail .detail-hero, #tokenDetail .metric, #tokenDetail .panel", "mock", "Mock data");
+  mark("#tokenDetail .layout .panel:last-child", "live", "Live API");
+  mark("#chains .panel, #chainDetail .detail-hero, #chainDetail .metric, #chainDetail .panel", "mock", "Mock data");
+  mark("#attribution .panel, #exports .panel, #apiCost .panel", "spec", "Feature spec");
+  mark("#alerts .panel", "mock", "Mock data");
+  mark("#sources .panel", "mixed", "Mixed data");
 }
 
 function bindEvents() {
@@ -485,7 +682,12 @@ function bindEvents() {
 
   $("#searchInput").addEventListener("input", renderPlatforms);
   $("#chainFilter").addEventListener("change", renderPlatforms);
-  $("#refreshButton").addEventListener("click", () => showToast(t("cachedToast")));
+  $("#refreshButton").addEventListener("click", () => {
+    showToast(t("cachedToast"));
+    fetchCryptoMarketData();
+    fetchDefiLlamaChainData();
+    fetchGeckoTerminalPoolData();
+  });
   $("#exportButton").addEventListener("click", () => showPage("exports"));
   $("#languageSelect").addEventListener("change", (event) => {
     currentLang = event.target.value;
@@ -510,16 +712,20 @@ function init() {
     { name: "Solana", share: 8, color: "#b6df5f" },
   ]);
   renderSplit("#chainPlatformSplit", platformData.slice(0, 4));
-  $("#pairList").innerHTML = ["BNB/USDT", "BNB/ETH", "BNB/USDC", "BNB/SOL"].map((pair, index) => `<div class="rank-item"><span><strong>${index + 1}. ${pair}</strong>Cached pair rollup</span><span>${["$486M", "$214M", "$168M", "$92M"][index]}</span></div>`).join("");
+  renderPairs();
   renderChains();
   renderRules();
   renderAlerts();
   renderSources();
   renderExports();
   renderCoverageAndCost();
+  applyDataStateStyles();
   bindEvents();
   showPage(window.location.hash.replace("#", "") || "overview");
   applyLanguage();
+  fetchCryptoMarketData({ quiet: true });
+  fetchDefiLlamaChainData({ quiet: true });
+  fetchGeckoTerminalPoolData({ quiet: true });
 }
 
 init();

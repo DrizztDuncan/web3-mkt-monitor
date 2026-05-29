@@ -6,8 +6,20 @@ Static product mockup and PRD for an onchain market intelligence product with tr
 
 - `index.html` - clickable product mockup
 - `styles.css` - mockup styling
-- `app.js` - mock data, page navigation, language switcher
+- `app.js` - live API integrations, mock data, page navigation, language switcher
 - `PRD.md` - product requirements document
+- `ROADMAP.md` - backend roadmap, API ownership, and phased budget estimates
+
+## Current Data Sources
+
+The mockup now separates live API data from mock/product-spec data:
+
+- CoinGecko powers token market cards.
+- DeFiLlama powers chain TVL and chain share.
+- GeckoTerminal powers token pair / pool detail.
+- Platform attribution, wallet counts, and alerts remain mock data until the product has its own backend and label database.
+
+For the recommended backend path and budget assumptions, see `ROADMAP.md`.
 
 ## GitHub Pages
 
@@ -27,4 +39,3 @@ The mockup will be available at:
 ```text
 https://<github-username>.github.io/<repo-name>/
 ```
-
