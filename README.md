@@ -7,6 +7,8 @@ Static product mockup and PRD for an onchain market intelligence product with tr
 - `index.html` - clickable product mockup
 - `styles.css` - mockup styling
 - `app.js` - live API integrations, mock data, page navigation, language switcher
+- `config.js` - optional deployed Worker API URL; empty keeps direct public API fallback
+- `BACKEND.md` - Cloudflare Worker, KV, D1, and scheduled sync setup
 - `PRD.md` - product requirements document
 - `ROADMAP.md` - backend roadmap, API ownership, and phased budget estimates
 
@@ -24,6 +26,7 @@ For the recommended backend path and budget assumptions, see `ROADMAP.md`.
 ## Documentation Guide
 
 - Start with `README.md` for the product summary, current data sources, and demo deployment.
+- Read `BACKEND.md` to run or deploy the Cloudflare backend MVP.
 - Read `ROADMAP.md` for backend phases, API ownership, and budget estimates.
 - Read `PRD.md` for the full product requirements, user stories, data model, and detailed planning.
 

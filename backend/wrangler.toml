@@ -1,0 +1,18 @@
+name = "web3-mkt-monitor-api"
+main = "src/index.js"
+compatibility_date = "2026-05-30"
+
+[vars]
+ALLOWED_ORIGIN = "*"
+
+[[kv_namespaces]]
+binding = "MARKET_CACHE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "web3-mkt-monitor"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[triggers]
+crons = ["*/15 * * * *"]

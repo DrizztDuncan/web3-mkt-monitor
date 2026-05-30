@@ -28,6 +28,8 @@ const poolMarketConfig = {
   tokenAddress: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
 };
 
+const backendApiBase = (window.WEB3_API_BASE || "").replace(/\/$/, "");
+
 let tokenData = [
   { id: "binancecoin", symbol: "BNB", name: "BNB Chain", volume: "$1.42B", change: "+12.4%", liquidity: "$642M", platform: "Binance Alpha" },
   { id: "ethereum", symbol: "ETH", name: "Ethereum", volume: "$1.21B", change: "+4.8%", liquidity: "$1.8B", platform: "OKX Wallet" },
@@ -378,6 +380,13 @@ function updateSource(name, state, freshness, confidence) {
   renderSources();
 }
 
+async function fetchBackendJson(path) {
+  if (!backendApiBase) return null;
+  const response = await fetch(`${backendApiBase}${path}`);
+  if (!response.ok) throw new Error(`Backend request failed: ${response.status}`);
+  return response.json();
+}
+
 async function fetchCryptoMarketData({ quiet = false } = {}) {
   const ids = tokenMarketConfig.map((item) => item.id).join(",");
   const endpoint = new URL("https://api.coingecko.com/api/v3/coins/markets");
@@ -393,9 +402,18 @@ async function fetchCryptoMarketData({ quiet = false } = {}) {
 
   try {
     updateSource("Market prices", "Loading", "now", 72);
-    const response = await fetch(endpoint);
-    if (!response.ok) throw new Error(`CoinGecko request failed: ${response.status}`);
-    const marketRows = await response.json();
+    const backend = await fetchBackendJson("/api/tokens");
+    const marketRows = backend
+      ? backend.data.map((row) => ({
+        id: row.id,
+        total_volume: row.volume24hUsd,
+        market_cap: row.marketCapUsd,
+        price_change_percentage_24h: row.change24hPct,
+      }))
+      : await fetch(endpoint).then((response) => {
+        if (!response.ok) throw new Error(`CoinGecko request failed: ${response.status}`);
+        return response.json();
+      });
     const rowsById = new Map(marketRows.map((row) => [row.id, row]));
 
     tokenData = tokenMarketConfig.map((token) => {
@@ -425,23 +443,34 @@ async function fetchCryptoMarketData({ quiet = false } = {}) {
 async function fetchDefiLlamaChainData({ quiet = false } = {}) {
   try {
     updateSource("DeFiLlama TVL", "Loading", "now", 72);
-    const response = await fetch("https://api.llama.fi/v2/chains");
-    if (!response.ok) throw new Error(`DeFiLlama request failed: ${response.status}`);
+    const backend = await fetchBackendJson("/api/chains");
+    if (backend) {
+      chainData = backend.data.map((row) => ({
+        name: row.name,
+        share: row.sharePct,
+        volume: `${formatUsdCompact(row.tvlUsd)} TVL`,
+        tx: `${formatPercent(row.change1dPct)} 24h`,
+        policy: "DeFiLlama via backend cache",
+      }));
+    } else {
+      const response = await fetch("https://api.llama.fi/v2/chains");
+      if (!response.ok) throw new Error(`DeFiLlama request failed: ${response.status}`);
 
-    const chains = await response.json();
-    const chainsByName = new Map(chains.map((item) => [item.name, item]));
-    const selectedChains = chainMarketConfig
-      .map((config) => ({ config, row: chainsByName.get(config.llamaName) }))
-      .filter((item) => item.row);
-    const selectedTvl = selectedChains.reduce((sum, item) => sum + Number(item.row.tvl || 0), 0);
+      const chains = await response.json();
+      const chainsByName = new Map(chains.map((item) => [item.name, item]));
+      const selectedChains = chainMarketConfig
+        .map((config) => ({ config, row: chainsByName.get(config.llamaName) }))
+        .filter((item) => item.row);
+      const selectedTvl = selectedChains.reduce((sum, item) => sum + Number(item.row.tvl || 0), 0);
 
-    chainData = selectedChains.map(({ config, row }) => ({
-      name: config.displayName,
-      share: selectedTvl ? Number(((Number(row.tvl || 0) / selectedTvl) * 100).toFixed(1)) : 0,
-      volume: `${formatUsdCompact(Number(row.tvl || 0))} TVL`,
-      tx: `${formatPercent(Number(row.change_1d || 0))} 24h`,
-      policy: config.policy,
-    }));
+      chainData = selectedChains.map(({ config, row }) => ({
+        name: config.displayName,
+        share: selectedTvl ? Number(((Number(row.tvl || 0) / selectedTvl) * 100).toFixed(1)) : 0,
+        volume: `${formatUsdCompact(Number(row.tvl || 0))} TVL`,
+        tx: `${formatPercent(Number(row.change_1d || 0))} 24h`,
+        policy: config.policy,
+      }));
+    }
 
     renderChains();
     setDataState("#chains .panel", "live", "Live API");
@@ -459,15 +488,19 @@ async function fetchGeckoTerminalPoolData({ quiet = false } = {}) {
   try {
     updateSource("GeckoTerminal Pools", "Loading", "now", 70);
     const endpoint = `https://api.geckoterminal.com/api/v2/networks/${poolMarketConfig.network}/tokens/${poolMarketConfig.tokenAddress}/pools`;
-    const response = await fetch(endpoint);
-    if (!response.ok) throw new Error(`GeckoTerminal request failed: ${response.status}`);
-
-    const payload = await response.json();
-    pairData = (payload.data || []).slice(0, 4).map((pool) => {
-      const attrs = pool.attributes || {};
-      const volume = Number(attrs.volume_usd?.h24 || 0);
-      const reserve = Number(attrs.reserve_in_usd || 0);
-      const change = Number(attrs.price_change_percentage?.h24 || 0);
+    const backend = await fetchBackendJson(`/api/pools/${poolMarketConfig.network}/${poolMarketConfig.tokenAddress}`);
+    const pools = backend
+      ? backend.data
+      : await fetch(endpoint).then(async (response) => {
+        if (!response.ok) throw new Error(`GeckoTerminal request failed: ${response.status}`);
+        const payload = await response.json();
+        return payload.data || [];
+      });
+    pairData = pools.slice(0, 4).map((pool) => {
+      const attrs = pool.attributes || pool;
+      const volume = Number(attrs.volume_usd?.h24 ?? attrs.volume24hUsd ?? 0);
+      const reserve = Number(attrs.reserve_in_usd ?? attrs.liquidityUsd ?? 0);
+      const change = Number(attrs.price_change_percentage?.h24 ?? attrs.change24hPct ?? 0);
       return {
         name: attrs.name || "BNB pool",
         meta: `${formatUsdCompact(volume)} 24h volume 繚 ${formatPercent(change)}`,
