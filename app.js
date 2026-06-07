@@ -69,8 +69,41 @@ const alertData = [
   { title: "BN Wallet new wallets cooling", meta: "BNB Chain · -6.2%", level: "Low" },
 ];
 
+let radarSignals = [
+  { asset: "SOL", chain: "Solana", signal: "Volume acceleration", move: "+18.1% 24h", liquidity: "$768M", risk: "Medium", action: "Open pair detail" },
+  { asset: "PEPE", chain: "Ethereum", signal: "DEX volume spike", move: "+31.5% 24h", liquidity: "$116M", risk: "High", action: "Check contract risk" },
+  { asset: "BNB", chain: "BNB Chain", signal: "Platform share expansion", move: "+12.4% 24h", liquidity: "$642M", risk: "Low", action: "Inspect entry mix" },
+  { asset: "WIF", chain: "Solana", signal: "Meme rotation watch", move: "-2.6% 24h", liquidity: "$82M", risk: "Medium", action: "Add tighter alerts" },
+];
+
+const radarMarketConfig = [
+  { asset: "SOL", query: "SOL", tokenAddress: "So11111111111111111111111111111111111111112", chain: "solana", signal: "Volume acceleration", risk: "Medium", action: "Open pair detail" },
+  { asset: "PEPE", query: "PEPE", tokenAddress: "0x6982508145454ce325ddbe47a25d4ec3d2311933", chain: "ethereum", signal: "DEX volume spike", risk: "High", action: "Check contract risk" },
+  { asset: "BNB", query: "WBNB", tokenAddress: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", chain: "bsc", signal: "Platform share expansion", risk: "Low", action: "Inspect entry mix" },
+  { asset: "WIF", query: "WIF", tokenAddress: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLJw4NLEVGq9W", chain: "solana", signal: "Meme rotation watch", risk: "Medium", action: "Add tighter alerts" },
+];
+
+const riskCheckConfig = [
+  { symbol: "PEPE", chain: "Ethereum", chainId: 1, address: "0x6982508145454ce325ddbe47a25d4ec3d2311933" },
+  { symbol: "BNB", chain: "BNB Chain", chainId: 56, address: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c" },
+  { symbol: "USDT", chain: "Ethereum", chainId: 1, address: "0xdac17f958d2ee523a2206206994597c13d831ec7" },
+];
+
+const watchlistAssets = [
+  { symbol: "BTC", chain: "Market", tier: "60s price", alert: "ETF flow + dominance" },
+  { symbol: "ETH", chain: "Ethereum", tier: "60s price", alert: "Gas, ETF, staking flow" },
+  { symbol: "SOL", chain: "Solana", tier: "1m liquidity", alert: "DEX volume spike" },
+  { symbol: "BNB", chain: "BNB Chain", tier: "5m pair", alert: "Alpha entry share" },
+  { symbol: "PEPE", chain: "Ethereum", tier: "5m risk", alert: "Volume + liquidity change" },
+  { symbol: "WIF", chain: "Solana", tier: "5m pair", alert: "Meme rotation" },
+];
+
 const sourceData = [
   { name: "DeFiLlama TVL", state: "Delayed", freshness: "mock fallback", confidence: 82 },
+  { name: "DEX Screener", state: "Delayed", freshness: "mock fallback", confidence: 78 },
+  { name: "Honeypot.is", state: "Delayed", freshness: "mock fallback", confidence: 74 },
+  { name: "OKX DEX", state: "Needs key", freshness: "configure secrets", confidence: 88 },
+  { name: "CoinPaprika fallback", state: "Ready", freshness: "on market API failure", confidence: 76 },
   { name: "Platform labels", state: "Healthy", freshness: "1 hr", confidence: 91 },
   { name: "Market prices", state: "Delayed", freshness: "22 min", confidence: 84 },
   { name: "GeckoTerminal Pools", state: "Delayed", freshness: "mock fallback", confidence: 80 },
@@ -85,6 +118,12 @@ const tokenSplitData = [
   { name: "Unknown", share: 9, color: "#d2d8d5" },
 ];
 
+let okxLiquiditySources = [
+  { name: "Uniswap V2", meta: "Official OKX DEX liquidity source example", state: "Needs key" },
+  { name: "SushiSwap", meta: "Configure OKX credentials to refresh", state: "Needs key" },
+  { name: "PancakeSwap", meta: "Supports chain-specific liquidity discovery", state: "Needs key" },
+];
+
 const rangeMetrics = {
   "24h": ["$12.84B", "18.7M", "4.26M", "14.2%"],
   "7d": ["$76.31B", "109.5M", "12.9M", "13.6%"],
@@ -94,6 +133,7 @@ const rangeMetrics = {
 
 const pageTitles = {
   overview: "All-chain market intelligence",
+  marketRadar: "Crypto trader market radar",
   platforms: "Platform entry market share",
   platformDetail: "Platform performance detail",
   tokens: "Token ranking and discovery",
@@ -120,6 +160,7 @@ const i18n = {
     exportCsv: "Export CSV",
     nav: {
       overview: "Overview",
+      marketRadar: "Market Radar",
       platforms: "Platforms",
       platformDetail: "Platform Detail",
       tokens: "Tokens",
@@ -149,6 +190,7 @@ const i18n = {
     exportCsv: "导出 CSV",
     nav: {
       overview: "总览",
+      marketRadar: "市场雷达",
       platforms: "平台",
       platformDetail: "平台详情",
       tokens: "代币",
@@ -163,6 +205,7 @@ const i18n = {
     },
     pageTitles: {
       overview: "全链市场情报",
+      marketRadar: "Crypto 市场雷达",
       platforms: "平台入口市场份额",
       platformDetail: "平台表现详情",
       tokens: "代币排行与发现",
@@ -182,6 +225,8 @@ const i18n = {
 };
 
 let currentLang = "en";
+let selectedRange = "24h";
+const sourceSyncTimes = new Map();
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -327,6 +372,7 @@ function applyLanguage() {
   });
   $("#pageTitle").textContent = i18n[currentLang].pageTitles[$(".page.active")?.id || "overview"];
   translateStaticText();
+  renderSyncStatus();
 }
 
 function translateStaticText() {
@@ -355,6 +401,42 @@ function showToast(message) {
   window.setTimeout(() => toast.classList.remove("show"), 2600);
 }
 
+function updateSourceSync(name, fetchedAt = new Date().toISOString()) {
+  const timestamp = new Date(fetchedAt).getTime();
+  if (!Number.isFinite(timestamp)) return;
+  sourceSyncTimes.set(name, timestamp);
+  renderSyncStatus();
+}
+
+function formatSyncAge(timestamp) {
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  return elapsedMinutes < 1 ? "just now" : `${elapsedMinutes} min ago`;
+}
+
+function renderSyncStatus() {
+  const status = $("[data-i18n='syncStatus']");
+  if (!status) return;
+  const requiredTimes = ["Market prices", "DeFiLlama TVL", "GeckoTerminal Pools", "DEX Screener", "Honeypot.is", "OKX DEX"]
+    .map((name) => sourceSyncTimes.get(name))
+    .filter(Number.isFinite);
+  if (!requiredTimes.length) {
+    status.textContent = currentLang === "zh" ? "缓存市场视图 · 等待同步" : "Cached market view · waiting for sync";
+    return;
+  }
+
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - Math.min(...requiredTimes)) / 60000));
+  if (currentLang === "zh") {
+    status.textContent = elapsedMinutes < 1 ? "缓存市场视图 · 刚刚同步" : `缓存市场视图 · ${elapsedMinutes} 分钟前同步`;
+    return;
+  }
+  status.textContent = elapsedMinutes < 1 ? "Cached market view · last sync just now" : `Cached market view · last sync ${elapsedMinutes} min ago`;
+  sourceSyncTimes.forEach((timestamp, name) => {
+    const source = sourceData.find((item) => item.name === name);
+    if (source?.state === "Live") source.freshness = formatSyncAge(timestamp);
+  });
+  renderSources();
+}
+
 function formatUsdCompact(value) {
   if (!Number.isFinite(value)) return "$0";
   return new Intl.NumberFormat("en", {
@@ -366,9 +448,13 @@ function formatUsdCompact(value) {
 }
 
 function formatPercent(value) {
-  if (!Number.isFinite(value)) return "0.0%";
+  if (!Number.isFinite(value)) return "N/A";
   const prefix = value > 0 ? "+" : "";
   return `${prefix}${value.toFixed(1)}%`;
+}
+
+function tokenChangeForRange(token) {
+  return formatPercent(token.changeByRange?.[selectedRange]);
 }
 
 function updateSource(name, state, freshness, confidence) {
@@ -382,9 +468,14 @@ function updateSource(name, state, freshness, confidence) {
 
 async function fetchBackendJson(path) {
   if (!backendApiBase) return null;
-  const response = await fetch(`${backendApiBase}${path}`);
-  if (!response.ok) throw new Error(`Backend request failed: ${response.status}`);
-  return response.json();
+  try {
+    const response = await fetch(`${backendApiBase}${path}`);
+    if (!response.ok) throw new Error(`Backend request failed: ${response.status}`);
+    return response.json();
+  } catch (error) {
+    console.warn(error);
+    return null;
+  }
 }
 
 async function fetchCryptoMarketData({ quiet = false } = {}) {
@@ -397,7 +488,7 @@ async function fetchCryptoMarketData({ quiet = false } = {}) {
     per_page: tokenMarketConfig.length.toString(),
     page: "1",
     sparkline: "false",
-    price_change_percentage: "24h",
+    price_change_percentage: "24h,7d,30d",
   }).toString();
 
   try {
@@ -409,6 +500,8 @@ async function fetchCryptoMarketData({ quiet = false } = {}) {
         total_volume: row.volume24hUsd,
         market_cap: row.marketCapUsd,
         price_change_percentage_24h: row.change24hPct,
+        price_change_percentage_7d: row.change7dPct,
+        price_change_percentage_30d: row.change30dPct,
       }))
       : await fetch(endpoint).then((response) => {
         if (!response.ok) throw new Error(`CoinGecko request failed: ${response.status}`);
@@ -424,14 +517,20 @@ async function fetchCryptoMarketData({ quiet = false } = {}) {
         symbol: token.symbol,
         name: token.fallbackName,
         volume: row ? formatUsdCompact(row.total_volume) : fallback.volume,
-        change: row ? formatPercent(row.price_change_percentage_24h) : fallback.change,
+        changeByRange: row ? {
+          "24h": row.price_change_percentage_24h,
+          "7d": row.price_change_percentage_7d ?? row.price_change_percentage_7d_in_currency,
+          "30d": row.price_change_percentage_30d ?? row.price_change_percentage_30d_in_currency,
+          "90d": null,
+        } : fallback.changeByRange,
         liquidity: row ? formatUsdCompact(row.market_cap) : fallback.liquidity,
         platform: token.platform,
       };
     });
 
     renderTokens();
-    updateSource("Market prices", "Live", "just now", 94);
+    updateSourceSync("Market prices", backend?.fetchedAt);
+    updateSource("Market prices", "Live", formatSyncAge(sourceSyncTimes.get("Market prices")), 94);
     if (!quiet) showToast("Crypto market data refreshed from CoinGecko.");
   } catch (error) {
     console.warn(error);
@@ -473,8 +572,9 @@ async function fetchDefiLlamaChainData({ quiet = false } = {}) {
     }
 
     renderChains();
+    updateSourceSync("DeFiLlama TVL", backend?.fetchedAt);
     setDataState("#chains .panel", "live", "Live API");
-    updateSource("DeFiLlama TVL", "Live", "just now", 94);
+    updateSource("DeFiLlama TVL", "Live", formatSyncAge(sourceSyncTimes.get("DeFiLlama TVL")), 94);
     if (!quiet) showToast("DeFiLlama chain TVL refreshed.");
   } catch (error) {
     console.warn(error);
@@ -509,14 +609,173 @@ async function fetchGeckoTerminalPoolData({ quiet = false } = {}) {
     });
 
     renderPairs();
+    updateSourceSync("GeckoTerminal Pools", backend?.fetchedAt);
     setDataState("#tokenDetail .layout .panel:last-child", "live", "Live API");
-    updateSource("GeckoTerminal Pools", "Live", "just now", 92);
+    updateSource("GeckoTerminal Pools", "Live", formatSyncAge(sourceSyncTimes.get("GeckoTerminal Pools")), 92);
     if (!quiet) showToast("GeckoTerminal pool data refreshed.");
   } catch (error) {
     console.warn(error);
     updateSource("GeckoTerminal Pools", "Delayed", "using mock fallback", 80);
     setDataState("#tokenDetail .layout .panel:last-child", "mock", "Mock data");
     if (!quiet) showToast("GeckoTerminal unavailable. Showing cached pair rollups.");
+  }
+}
+
+function displayChain(chainId) {
+  return {
+    bsc: "BNB Chain",
+    ethereum: "Ethereum",
+    solana: "Solana",
+    base: "Base",
+    arbitrum: "Arbitrum",
+  }[chainId] || chainId;
+}
+
+function displayRisk(risk) {
+  const value = String(risk || "Unknown").toLowerCase();
+  if (value.includes("high") || value === "very_high") return "High";
+  if (value.includes("medium")) return "Medium";
+  if (value.includes("low")) return "Low";
+  return "Unknown";
+}
+
+function pickDexPair(pairs, config) {
+  const exactChain = (pairs || []).filter((pair) => pair.chainId === config.chain);
+  const candidates = exactChain.length ? exactChain : pairs || [];
+  return candidates.sort((a, b) => Number(b.volume?.h24 || 0) - Number(a.volume?.h24 || 0))[0];
+}
+
+async function fetchMarketRadarData({ quiet = false } = {}) {
+  try {
+    updateSource("DEX Screener", "Loading", "now", 70);
+    const backend = await fetchBackendJson("/api/radar");
+    const rows = backend
+      ? backend.data
+      : await Promise.all(radarMarketConfig.map(async (config) => {
+        const endpoint = config.tokenAddress
+          ? new URL(`https://api.dexscreener.com/latest/dex/tokens/${config.tokenAddress}`)
+          : new URL("https://api.dexscreener.com/latest/dex/search");
+        if (!config.tokenAddress) endpoint.searchParams.set("q", config.query);
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error(`DEX Screener request failed: ${response.status}`);
+        const payload = await response.json();
+        const pair = pickDexPair(payload.pairs, config) || {};
+        return {
+          asset: config.asset,
+          chain: displayChain(pair.chainId || config.chain),
+          signal: config.signal,
+          movePct24h: Number(pair.priceChange?.h24 || 0),
+          volume24hUsd: Number(pair.volume?.h24 || 0),
+          liquidityUsd: Number(pair.liquidity?.usd || 0),
+          risk: config.risk,
+          action: config.action,
+        };
+      }));
+
+    const previousSignals = radarSignals;
+    radarSignals = rows.map((row) => {
+      const fallback = previousSignals.find((item) => item.asset === row.asset) || {};
+      const liquidityUsd = Number(row.liquidityUsd || 0);
+      const movePct24h = Number(row.movePct24h);
+      return {
+        asset: row.asset,
+        chain: displayChain(row.chain || fallback.chain),
+        signal: row.signal || fallback.signal,
+        move: Number.isFinite(movePct24h) && liquidityUsd > 0 ? `${formatPercent(movePct24h)} 24h` : fallback.move,
+        liquidity: liquidityUsd > 0 ? formatUsdCompact(liquidityUsd) : fallback.liquidity,
+        risk: displayRisk(row.risk || fallback.risk),
+        action: row.action || fallback.action || "Open pair detail",
+      };
+    });
+
+    renderMarketRadar();
+    updateSourceSync("DEX Screener", backend?.fetchedAt);
+    updateSource("DEX Screener", "Live", formatSyncAge(sourceSyncTimes.get("DEX Screener")), 90);
+    setDataState("#marketRadar .panel.wide", "live", "Live API");
+    if (!quiet) showToast("Market Radar refreshed from DEX Screener.");
+  } catch (error) {
+    console.warn(error);
+    updateSource("DEX Screener", "Delayed", "using mock fallback", 78);
+    if (!quiet) showToast("DEX Screener unavailable. Showing radar fallback data.");
+  }
+}
+
+async function fetchRiskData({ quiet = false } = {}) {
+  try {
+    updateSource("Honeypot.is", "Loading", "now", 66);
+    const backend = await fetchBackendJson("/api/risks");
+    const rows = backend
+      ? backend.data
+      : await Promise.all(riskCheckConfig.map(async (config) => {
+        const endpoint = new URL("https://api.honeypot.is/v2/IsHoneypot");
+        endpoint.searchParams.set("address", config.address);
+        endpoint.searchParams.set("chainID", config.chainId.toString());
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error(`Honeypot.is request failed: ${response.status}`);
+        const payload = await response.json();
+        return {
+          symbol: config.symbol,
+          chain: config.chain,
+          isHoneypot: Boolean(payload.honeypotResult?.isHoneypot),
+          risk: String(payload.summary?.risk || payload.risk || "Unknown"),
+        };
+      }));
+
+    rows.forEach((row) => {
+      const signal = radarSignals.find((item) => item.asset === row.symbol);
+      if (!signal) return;
+      signal.risk = row.isHoneypot ? "High" : displayRisk(row.risk);
+      signal.action = row.isHoneypot ? "Avoid honeypot risk" : signal.action;
+    });
+
+    renderMarketRadar();
+    updateSourceSync("Honeypot.is", backend?.fetchedAt);
+    updateSource("Honeypot.is", "Live", formatSyncAge(sourceSyncTimes.get("Honeypot.is")), 86);
+    if (!quiet) showToast("EVM risk queue refreshed from Honeypot.is.");
+  } catch (error) {
+    console.warn(error);
+    updateSource("Honeypot.is", "Delayed", "using mock fallback", 74);
+    if (!quiet) showToast("Honeypot.is unavailable. Keeping risk fallback labels.");
+  }
+}
+
+async function fetchOkxLiquidityData({ quiet = false } = {}) {
+  try {
+    updateSource("OKX DEX", "Loading", "now", 78);
+    const backend = await fetchBackendJson("/api/platforms/okx/liquidity?chainIndex=1");
+    if (!backend || backend.status === "not_configured" || backend.status === "auth_error") {
+      const isAuthError = backend?.status === "auth_error";
+      okxLiquiditySources = [
+        {
+          name: isAuthError ? "OKX DEX authentication failed" : "OKX DEX API keys required",
+          meta: isAuthError
+            ? "OKX returned 401. Check the API key, secret key, passphrase, Web3/DEX permissions, IP/project restrictions, and optional OKX_DEX_PROJECT_ID."
+            : "Set OKX_DEX_API_KEY, OKX_DEX_SECRET_KEY, and OKX_DEX_PASSPHRASE in the Worker environment.",
+          state: isAuthError ? "Auth error" : "Needs key",
+        },
+        { name: "Supported chains", meta: "OKX endpoint: /api/v6/dex/aggregator/supported/chain", state: "Official" },
+        { name: "Liquidity sources", meta: "OKX endpoint: /api/v6/dex/aggregator/get-liquidity", state: "Official" },
+      ];
+      renderOkxLiquidity();
+      updateSource("OKX DEX", isAuthError ? "Auth error" : "Needs key", isAuthError ? "check credentials" : "configure secrets", 88);
+      if (!quiet) showToast(isAuthError ? "OKX DEX authentication failed. Check API key settings." : "OKX DEX is wired. Add API credentials to refresh official liquidity sources.");
+      return;
+    }
+
+    okxLiquiditySources = backend.data.slice(0, 8).map((source) => ({
+      name: source.name,
+      meta: `OKX liquidity source ID ${source.id}`,
+      state: "Official",
+    }));
+    renderOkxLiquidity();
+    updateSourceSync("OKX DEX", backend.fetchedAt);
+    updateSource("OKX DEX", "Live", formatSyncAge(sourceSyncTimes.get("OKX DEX")), 92);
+    setDataState("#platformDetail > .panel:last-child", "live", "Live API");
+    if (!quiet) showToast("OKX DEX liquidity sources refreshed.");
+  } catch (error) {
+    console.warn(error);
+    updateSource("OKX DEX", "Delayed", "using setup fallback", 82);
+    if (!quiet) showToast("OKX DEX unavailable. Showing setup fallback.");
   }
 }
 
@@ -553,13 +812,13 @@ function renderTokens() {
     <button class="data-card data-live" data-data-label="Live API" data-open-page="tokenDetail" type="button">
       <span>#${index + 1} · ${item.name}</span>
       <strong>${item.symbol}</strong>
-      <em>${item.volume} · ${item.change}</em>
-      <small>${item.platform} · ${item.liquidity} liquidity</small>
+      <em>${item.volume} · ${tokenChangeForRange(item)} ${selectedRange}</em>
+      <small>${item.platform} · ${item.liquidity} market cap</small>
     </button>
   `).join("");
 
   $("#platformTokenList").innerHTML = tokenData.slice(0, 5).map((item, index) => `
-    <div class="rank-item"><span><strong>${index + 1}. ${item.symbol}</strong>${item.name}</span><span>${item.volume} · ${item.change}</span></div>
+    <div class="rank-item"><span><strong>${index + 1}. ${item.symbol}</strong>${item.name}</span><span>${item.volume} · ${tokenChangeForRange(item)} ${selectedRange}</span></div>
   `).join("");
 }
 
@@ -585,6 +844,17 @@ function renderChains() {
 function renderPairs() {
   $("#pairList").innerHTML = pairData.map((pair, index) => `
     <div class="rank-item"><span><strong>${index + 1}. ${pair.name}</strong>${pair.meta}</span><span>${pair.value}</span></div>
+  `).join("");
+}
+
+function renderOkxLiquidity() {
+  const setupState = okxLiquiditySources.find((item) => item.state === "Auth error" || item.state === "Needs key");
+  $("#okxSourceState").textContent = setupState?.state || "Official API";
+  $("#okxLiquidityList").innerHTML = okxLiquiditySources.map((item) => `
+    <div class="source-item ${item.state === "Official" ? "data-live" : "data-mock"}">
+      <div><strong>${item.name}</strong><span>${item.meta}</span></div>
+      <span class="policy ${item.state === "Needs key" ? "expensive" : ""}">${item.state}</span>
+    </div>
   `).join("");
 }
 
@@ -620,6 +890,46 @@ function renderAlerts() {
   ].map(([name, rule]) => `<div class="source-item"><div><strong>${name}</strong><span>${rule}</span></div><span class="policy">Batch</span></div>`).join("");
 }
 
+function renderMarketRadar() {
+  $("#watchlistCount").textContent = watchlistAssets.length.toString();
+  $("#hotSignalCount").textContent = radarSignals.length.toString();
+
+  $("#radarSignalList").innerHTML = radarSignals.map((item, index) => `
+    <div class="radar-item">
+      <div class="radar-rank">#${index + 1}</div>
+      <div>
+        <strong>${item.asset}</strong>
+        <span>${item.chain} · ${item.signal}</span>
+      </div>
+      <div><strong>${item.move}</strong><span>Move</span></div>
+      <div><strong>${item.liquidity}</strong><span>Liquidity</span></div>
+      <span class="confidence ${item.risk.toLowerCase()}">${item.risk}</span>
+      <button class="button" data-open-page="tokenDetail" type="button">${item.action}</button>
+    </div>
+  `).join("");
+
+  $("#watchlistBudget").innerHTML = [
+    ["Broad market", "15m cached"],
+    ["Watchlist prices", "60s-5m"],
+    ["Pool liquidity", "Visible assets"],
+    ["Wallet analytics", "Click to load"],
+  ].map(([name, cadence]) => `<div><span>${name}</span><strong>${cadence}</strong></div>`).join("");
+
+  $("#watchlistItems").innerHTML = watchlistAssets.map((item) => `
+    <div class="source-item">
+      <div><strong>${item.symbol}</strong><span>${item.chain} · ${item.alert}</span></div>
+      <span class="policy">${item.tier}</span>
+    </div>
+  `).join("");
+
+  $("#radarRules").innerHTML = [
+    ["Price move", "> 5% in 1h for watchlist"],
+    ["Volume spike", "> 25% vs 24h baseline"],
+    ["Liquidity change", "> 10% add/remove"],
+    ["Risk change", "Contract or holder flag updated"],
+  ].map(([name, rule]) => `<div class="source-item"><div><strong>${name}</strong><span>${rule}</span></div><span class="policy">Trader</span></div>`).join("");
+}
+
 function renderSources() {
   $("#sourceList").innerHTML = sourceData.map((item) => `
     <div class="source-item ${item.state === "Live" ? "data-live" : "data-mock"}">
@@ -631,7 +941,11 @@ function renderSources() {
   $("#refreshList").innerHTML = [
     ["Chain TVL", "DeFiLlama"],
     ["Token prices", "CoinGecko"],
+    ["Token price fallback", "CoinPaprika"],
+    ["Radar signals", "DEX Screener"],
     ["Pool liquidity", "GeckoTerminal"],
+    ["EVM risk checks", "Honeypot.is"],
+    ["OKX official liquidity", "Keyed API"],
     ["Platform shares", "Mock / labels"],
     ["Attribution labels", "Manual + daily"],
     ["Historical trends", "Daily"],
@@ -675,6 +989,7 @@ function applyDataStateStyles() {
 
   mark("#overview .metric, #overview .wide, #overview .layout:first-of-type .panel:not(.wide), #overview .layout:nth-of-type(2) .panel:first-child", "mock", "Mock data");
   mark("#overview .layout:nth-of-type(2) .panel:last-child", "spec", "Feature spec");
+  mark("#marketRadar .radar-hero, #marketRadar .metric, #marketRadar .panel", "mock", "Mock data");
   mark("#platforms .panel", "mock", "Mock data");
   mark("#platformDetail .detail-hero, #platformDetail .metric, #platformDetail .panel", "mock", "Mock data");
   mark("#tokens .panel", "live", "Live API");
@@ -698,10 +1013,12 @@ function bindEvents() {
       $$("[data-range]").forEach((item) => item.classList.remove("active"));
       button.classList.add("active");
       const metrics = rangeMetrics[button.dataset.range];
+      selectedRange = button.dataset.range;
       $("#volumeMetric").textContent = metrics[0];
       $("#txMetric").textContent = metrics[1];
       $("#walletMetric").textContent = metrics[2];
       $("#unknownMetric").textContent = metrics[3];
+      renderTokens();
       showToast(`${button.dataset.range} uses precomputed aggregates.`);
     });
   });
@@ -720,6 +1037,9 @@ function bindEvents() {
     fetchCryptoMarketData();
     fetchDefiLlamaChainData();
     fetchGeckoTerminalPoolData();
+    fetchMarketRadarData();
+    fetchRiskData();
+    fetchOkxLiquidityData();
   });
   $("#exportButton").addEventListener("click", () => showPage("exports"));
   $("#languageSelect").addEventListener("change", (event) => {
@@ -729,12 +1049,20 @@ function bindEvents() {
   });
   $("#loadPlatformDeep").addEventListener("click", () => showToast("Wallet cohorts are intentionally on-demand because they are expensive."));
   $("#loadTokenDetail").addEventListener("click", () => showToast("Token detail loads platform split first; wallet cohorts remain gated."));
+  $("#refreshRadarButton").addEventListener("click", () => {
+    showToast("Radar refresh uses cached market scans and visible watchlist assets.");
+    fetchCryptoMarketData();
+    fetchGeckoTerminalPoolData();
+    fetchMarketRadarData();
+    fetchRiskData();
+  });
   $("#testRuleButton").addEventListener("click", () => showToast("Sample attribution test uses cached labeled transactions, not full chain replay."));
   $("#queueExportButton").addEventListener("click", () => showToast("Export queued from rollup tables. No fresh API call needed."));
 }
 
 function init() {
   renderPlatforms();
+  renderMarketRadar();
   renderLegend();
   renderTokens();
   renderSplit("#tokenSplit", tokenSplitData);
@@ -746,6 +1074,7 @@ function init() {
   ]);
   renderSplit("#chainPlatformSplit", platformData.slice(0, 4));
   renderPairs();
+  renderOkxLiquidity();
   renderChains();
   renderRules();
   renderAlerts();
@@ -759,6 +1088,10 @@ function init() {
   fetchCryptoMarketData({ quiet: true });
   fetchDefiLlamaChainData({ quiet: true });
   fetchGeckoTerminalPoolData({ quiet: true });
+  fetchMarketRadarData({ quiet: true });
+  fetchRiskData({ quiet: true });
+  fetchOkxLiquidityData({ quiet: true });
+  window.setInterval(renderSyncStatus, 60000);
 }
 
 init();

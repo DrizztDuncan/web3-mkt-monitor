@@ -7,12 +7,12 @@ ALLOWED_ORIGIN = "*"
 
 [[kv_namespaces]]
 binding = "MARKET_CACHE"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "a7b08e03ca0f47d19f537f83e08d9939"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "web3-mkt-monitor"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "b0b7f547-b348-48fd-94b0-6bec5ff5f847"
 
 [triggers]
 crons = ["*/15 * * * *"]

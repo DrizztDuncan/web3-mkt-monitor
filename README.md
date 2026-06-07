@@ -17,8 +17,13 @@ Static product mockup and PRD for an onchain market intelligence product with tr
 The mockup now separates live API data from mock/product-spec data:
 
 - CoinGecko powers token market cards.
+- CoinPaprika is configured as a no-key market data fallback when CoinGecko is unavailable.
 - DeFiLlama powers chain TVL and chain share.
 - GeckoTerminal powers token pair / pool detail.
+- DEX Screener powers Market Radar signals and visible watchlist liquidity.
+- Honeypot.is powers EVM token risk labels for the risk queue.
+- OKX DEX can power official Platform Detail liquidity coverage after API credentials are configured.
+- Market Radar adds a trader-oriented crypto workflow with watchlist-first signals, liquidity alerts, and gated risk checks.
 - Platform attribution, wallet counts, and alerts remain mock data until the product has its own backend and label database.
 
 For the recommended backend path and budget assumptions, see `ROADMAP.md`.

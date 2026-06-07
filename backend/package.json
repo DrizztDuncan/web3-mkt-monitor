@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "sync:local": "node scripts/sync-local.mjs",
     "db:migrate:local": "wrangler d1 migrations apply web3-mkt-monitor --local",
     "db:migrate:remote": "wrangler d1 migrations apply web3-mkt-monitor --remote",
     "types": "wrangler types"

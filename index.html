@@ -18,6 +18,7 @@
 
       <nav id="nav">
         <button class="active" data-page="overview" type="button">Overview</button>
+        <button data-page="marketRadar" type="button">Market Radar</button>
         <button data-page="platforms" type="button">Platforms</button>
         <button data-page="platformDetail" type="button">Platform Detail</button>
         <button data-page="tokens" type="button">Tokens</button>
@@ -130,6 +131,49 @@
         </div>
       </section>
 
+      <section id="marketRadar" class="page">
+        <div class="radar-hero">
+          <div>
+            <p class="eyebrow">Trader mode</p>
+            <h2>Crypto market radar</h2>
+            <span>Watchlist-first signals for tokens, pairs, liquidity, and risk.</span>
+          </div>
+          <button id="refreshRadarButton" class="button primary" type="button">Refresh radar</button>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric"><span>Watched assets</span><strong id="watchlistCount">6</strong><em>higher refresh tier</em></article>
+          <article class="metric"><span>Hot signals</span><strong id="hotSignalCount">4</strong><em>15m cached scan</em></article>
+          <article class="metric"><span>Liquidity alerts</span><strong>2</strong><em>pool-level checks</em></article>
+          <article class="metric"><span>Risk queue</span><strong>3</strong><em>on-demand verification</em></article>
+        </div>
+
+        <div class="layout">
+          <article class="panel wide">
+            <div class="panel-head">
+              <div><p class="eyebrow">Opportunities</p><h2>Market radar signals</h2></div>
+              <span class="pill green">Cached + visible assets</span>
+            </div>
+            <div id="radarSignalList" class="radar-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Watchlist</p><h2>Refresh budget</h2></div></div>
+            <div id="watchlistBudget" class="cost-matrix"></div>
+          </article>
+        </div>
+
+        <div class="layout">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Watchlist</p><h2>Tracked assets</h2></div></div>
+            <div id="watchlistItems" class="source-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Rules</p><h2>Trader alert triggers</h2></div></div>
+            <div id="radarRules" class="source-list"></div>
+          </article>
+        </div>
+      </section>
+
       <section id="platforms" class="page">
         <article class="panel table-panel">
           <div class="panel-head">
@@ -164,6 +208,13 @@
           <article class="panel"><div class="panel-head"><div><p class="eyebrow">Chains</p><h2>Chain distribution</h2></div></div><div id="platformChainSplit" class="stacked-bars"></div></article>
           <article class="panel"><div class="panel-head"><div><p class="eyebrow">Tokens</p><h2>Hot tokens on platform</h2></div></div><div id="platformTokenList" class="rank-list"></div></article>
         </div>
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">Official source</p><h2>OKX DEX liquidity coverage</h2></div>
+            <span id="okxSourceState" class="pill">Optional keyed API</span>
+          </div>
+          <div id="okxLiquidityList" class="source-list"></div>
+        </article>
       </section>
 
       <section id="tokens" class="page">
